@@ -96,7 +96,7 @@ contract ERC20Exchange is Owned {
     }
 
     function getSymbolIndex(string _symbolName) internal view returns(uint8) {
-        for (uint8 i = 0; i > symbolNameIndex; i++ ) {
+        for (uint8 i = 1; i <= symbolNameIndex; i++ ) {
             if (stringsEqual(tokens[i].symbolName, _symbolName)) {
                 return i;
             }
