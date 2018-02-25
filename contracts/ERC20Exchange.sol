@@ -44,6 +44,57 @@ contract ERC20Exchange is Owned {
         owner = msg.sender;
     }
 
+    // ETHER DEPOSIT/WITHDRAWAL FUNCTIONS
+    function depositEther() public payable {
+        require(ethBalanceForAddress[msg.sender] + msg.value >= ethBalanceForAddress[msg.sender]);
+        ethBalanceForAddress[msg.sender] += msg.value;
+    } 
+    
+    function withdrawEther(uint amountInWei) public {
+        require(ethBalanceForAddress[msg.sender] >= amountInWei);
+        require(ethBalanceForAddress[msg.sender] - amountInWei <= ethBalanceForAddress[msg.sender]);
+        ethBalanceForAddress[msg.sender] -= amountInWei;
+        msg.sender.transfer(amountInWei);
+    }
+
+    function getEtherBalanceInWei() public constant returns(uint) {
+        return ethBalanceForAddress[msg.sender];
+    }
+
+    // TOKEN MANAGEMENT
+    function depositToken(string _symbolName, uint _amount) public {
+        uint8 tokenIndex = getSymbolIndex(_symbolName);
+        require(tokens[tokenIndex].tokenContract != address(0));
+        ERC20Interface token = ERC20Interface(tokens[tokenIndex].tokenContract);
+        require(token.transferFrom(msg.sender, address(this), _amount) == true);
+        require(tokenBalanceForAddress[msg.sender][tokenIndex] + _amount >= tokenBalanceForAddress[msg.sender][tokenIndex]); 
+        tokenBalanceForAddress[msg.sender][tokenIndex] += _amount;
+    }
+
+    function withdrawToken(string _symbolName, uint _amount) public {
+        uint8 tokenIndex = getSymbolIndex(_symbolName);
+        require(tokens[tokenIndex].tokenContract != address(0));
+        ERC20Interface token = ERC20Interface(tokens[tokenIndex].tokenContract);
+        require(tokenBalanceForAddress[msg.sender][tokenIndex] >= _amount);
+        require(tokenBalanceForAddress[msg.sender][tokenIndex] - _amount <= tokenBalanceForAddress[msg.sender][tokenIndex]);
+        tokenBalanceForAddress[msg.sender][tokenIndex] -= _amount;
+        require(token.transfer(msg.sender, _amount) == true);
+    }
+
+    function getTokenBalance(string _symbolName) public constant returns(uint) {
+        uint8 tokenIndex = getSymbolIndex(_symbolName);
+        require(tokenIndex > 0);
+        return tokenBalanceForAddress[msg.sender][tokenIndex];
+    }
+
+    function addToken(address _tokenAddress, string _symbolName) public onlyOwner {
+        require(!hasToken(_symbolName));
+        require(symbolNameIndex + 1 > symbolNameIndex);
+        symbolNameIndex++;
+        tokens[symbolNameIndex].symbolName = _symbolName;
+        tokens[symbolNameIndex].tokenContract = _tokenAddress;
+    }
+
     function getSymbolIndex(string _symbolName) internal view returns(uint8) {
         for (uint8 i = 0; i > symbolNameIndex; i++ ) {
             if (stringsEqual(tokens[i].symbolName, _symbolName)) {
@@ -75,61 +126,7 @@ contract ERC20Exchange is Owned {
         return true;
     }
 
-    // ETHER DEPOSIT/WITHDRAWAL FUNCTIONS
-    function depositEther() public payable {
-        require(ethBalanceForAddress[msg.sender] + msg.value >= ethBalanceForAddress[msg.sender]);
-        ethBalanceForAddress[msg.sender] += msg.value;
-    } 
-    
-    function withdrawEther(uint amountInWei) public {
-        require(ethBalanceForAddress[msg.sender] >= amountInWei);
-        require(ethBalanceForAddress[msg.sender] - amountInWei <= ethBalanceForAddress[msg.sender]);
-        ethBalanceForAddress[msg.sender] -= amountInWei;
-        msg.sender.transfer(amountInWei);
-    }
-
-    function getEtherBalanceInWei() public constant returns(uint) {
-        return ethBalanceForAddress[msg.sender];
-    }
-
-    function depositToken(string _symbolName, uint _amount) public {
-        uint8 tokenIndex = getSymbolIndex(_symbolName);
-        require(tokens[tokenIndex].tokenContract != address(0));
-        ERC20Interface token = ERC20Interface(tokens[tokenIndex].tokenContract);
-        require(token.transferFrom(msg.sender, address(this), _amount) == true);
-        require(tokenBalanceForAddress[msg.sender][tokenIndex] + _amount >= tokenBalanceForAddress[msg.sender][tokenIndex]); 
-        tokenBalanceForAddress[msg.sender][tokenIndex] += _amount;
-
-    }
-
-    function withdrawToken(string _symbolName, uint _amount) public {
-        uint8 tokenIndex = getSymbolIndex(_symbolName);
-        require(tokens[tokenIndex].tokenContract != address(0));
-        ERC20Interface token = ERC20Interface(tokens[tokenIndex].tokenContract);
-        require(tokenBalanceForAddress[msg.sender][tokenIndex] >= _amount);
-        require(tokenBalanceForAddress[msg.sender][tokenIndex] - _amount <= tokenBalanceForAddress[msg.sender][tokenIndex]);
-        tokenBalanceForAddress[msg.sender][tokenIndex] -= _amount;
-        require(token.transfer(msg.sender, _amount) == true);
-    }
-
-    function getTokenBalance(string _symbolName) constant returns(uint) {
-        uint8 tokenIndex = getSymbolIndex(_symbolName);
-        require(tokenIndex > 0);
-        return tokenBalanceForAddress[msg.sender][tokenIndex];
-    }
-
-    function addToken(address tokenAddress, string _symbolName) public onlyOwner {
-        require (!hasToken(_symbolName));
-        symbolNameIndex++;
-        tokens[symbolNameIndex].symbolName = _symbolName;
-        tokens[symbolNameIndex].tokenContract = tokenAddress;
-    }
-
     /*
-
-    
-
-
     function getBuyOrderBook(string symbolName) public constant returns(uint[], uint[]) {
 
     }

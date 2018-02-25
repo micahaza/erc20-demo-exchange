@@ -1,4 +1,5 @@
 var exchange = artifacts.require("./ERC20Exchange.sol");
+var fsToken = artifacts.require("./FixedSupplyToken.sol");
 
 contract('Exchange contract', function(accounts){
     
@@ -48,6 +49,23 @@ contract('Exchange contract', function(accounts){
         }).then(function(balanceInWei){
             assert.equal(balanceInWei.toNumber(), 0, "1 ether still available")
             assert.isAtLeast(balanceAfterWithdrawal.toNumber(), balanceBeforeDeposit.toNumber() - 2 * gasUsed, "We're almost okay")
+        })
+    })
+
+    it('exchange owner can add new token', function(){
+        var tokenInstance;
+        var exchangeInstance;
+        return fsToken.deployed().then(function(instance){
+            tokenInstance = instance;  
+        }).then(function(instance){
+            return exchange.deployed();
+        }).then(function(instance){
+            exchangeInstance = instance;
+            return exchangeInstance.addToken(tokenInstance.address, "FIXED");
+        }).then(function(){
+            return exchangeInstance.hasToken.call("FIXED")
+        }).then(function(hasToken){
+            assert.equal(true, hasToken, "Token wasn't added")
         })
     })
 })
