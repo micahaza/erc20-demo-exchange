@@ -57,7 +57,6 @@ contract('Exchange contract', function(accounts){
         var exchangeInstance;
         return fsToken.deployed().then(function(instance){
             tokenInstance = instance;  
-        }).then(function(instance){
             return exchange.deployed();
         }).then(function(instance){
             exchangeInstance = instance;
@@ -65,7 +64,41 @@ contract('Exchange contract', function(accounts){
         }).then(function(){
             return exchangeInstance.hasToken.call("FIXED")
         }).then(function(hasToken){
-            assert.equal(true, hasToken, "Token wasn't added")
+            assert.equal(true, hasToken, "Token wasn't added");
+            return exchangeInstance.hasToken.call("NONEXISTENT");
+        }).then(function(hasToken){
+            assert.equal(false, hasToken, "non existent token wasn found");
+        })
+    })
+
+    it('we should be able to deposit token', function(){
+        var exchangeInstance;
+        var tokenInstance;
+        return exchange.deployed().then(function(instance){
+            exchangeInstance = instance;
+        }).then(function(){
+            return fsToken.deployed();
+        }).then(function(instance){
+            tokenInstance = instance;
+            return tokenInstance.approve(exchangeInstance.address, 1500);
+        }).then(function(tx){
+            return exchangeInstance.depositToken('FIXED', 1500)
+        }).then(function(txHash){
+            return exchangeInstance.getTokenBalance('FIXED');
+        }).then(function(tBalance){
+            assert.equal(1500, tBalance);
+        })
+    })
+
+    it('we should be able to withdraw token', function(){
+        var exchangeInstance;
+        var tokenInstance;
+        return exchange.deployed().then(function(instance){
+            exchangeInstance = instance;
+        }).then(function(){
+            return fsToken.deployed();
+        }).then(function(instance){
+            tokenInstance = instance;
         })
     })
 })
