@@ -5,12 +5,10 @@ contract('Exchange contract', function(accounts){
     
     it('we can deposit ether with depositEther method', function(){
         var exchangeInstance;
- 
         var testAccount = accounts[0];
         var balanceBeforeDeposit = web3.eth.getBalance(testAccount);
         var balanceAfterDeposit;
         var balanceAfterWithdrawal;        
-
         exchange.deployed().then(function(instance){
             exchangeInstance = instance;
              return exchangeInstance.depositEther({from: testAccount, value: web3.toWei(1, "ether")});
@@ -25,13 +23,11 @@ contract('Exchange contract', function(accounts){
 
     it('we can withdraw previously deposited ether', function(){
         var exchangeInstance;
- 
         var testAccount = accounts[1];
         var balanceBeforeDeposit = web3.eth.getBalance(testAccount);
         var balanceAfterDeposit;
         var balanceAfterWithdrawal;        
         var gasUsed = 0;
-
         exchange.deployed().then(function(instance){
             exchangeInstance = instance;
              return exchangeInstance.depositEther({from: testAccount, value: web3.toWei(1, "ether")});
@@ -91,14 +87,40 @@ contract('Exchange contract', function(accounts){
     })
 
     it('we should be able to withdraw token', function(){
+        var testAccount = accounts[0];
         var exchangeInstance;
         var tokenInstance;
+        
+        var balanceInExchangeBefore;
+        var balanceInExchangeAfter;
+        
+        var balanceInTokenBefore;
+        var balanceInTokenAfter;        
+        
         return exchange.deployed().then(function(instance){
             exchangeInstance = instance;
         }).then(function(){
             return fsToken.deployed();
         }).then(function(instance){
             tokenInstance = instance;
+            return exchangeInstance.getTokenBalance('FIXED', {from: testAccount})
+        }).then(function(balance){
+            balanceInExchangeBefore = balance.toNumber();
+            return tokenInstance.balanceOf(testAccount, {from: testAccount});
+        }).then(function(balance){
+            balanceInTokenBefore = balance.toNumber();
+            return exchangeInstance.withdrawToken('FIXED', balanceInExchangeBefore, {from: testAccount});
+        }).then(function(txHash){
+            return exchangeInstance.getTokenBalance('FIXED', {from: testAccount});
+        }).then(function(balance){
+            balanceInExchangeAfter = balance.toNumber();
+            return tokenInstance.balanceOf(testAccount, {from: testAccount});
+        }).then(function(balance){
+            balanceInTokenAfter = balance.toNumber();
+            // Before sum sould be equal to after sum
+            beforeBalance = balanceInExchangeBefore + balanceInTokenBefore;
+            afterBalance = balanceInExchangeAfter + balanceInTokenAfter;
+            assert.equal(beforeBalance, afterBalance);
         })
     })
 })
