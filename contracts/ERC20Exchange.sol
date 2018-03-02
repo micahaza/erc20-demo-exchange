@@ -30,8 +30,8 @@ contract ERC20Exchange is Owned {
         mapping(uint => OrderBook) sellBook;
         uint currSellPrice;
         uint highestSellPrice;
-        uint amountSellPrices;
     }
+        uint amountSellPrices;
 
     mapping(uint8 => Token) tokens;
     
@@ -40,14 +40,32 @@ contract ERC20Exchange is Owned {
     mapping(address => uint) ethBalanceForAddress;
     mapping(address => mapping(uint => uint)) tokenBalanceForAddress;    
 
-    function ERC20Exchange() public {
-        owner = msg.sender;
-    }
+    // Deposit, withdrawal events
+    event TokenDepositReceived(address indexed _from, uint indexed _symbolIndex, uint _amount, uint _timestamp);
+    event TokenWithdrawal(address indexed _to, uint indexed _symbolIndex, uint _amount, uint _timestamp);
+    event EthDepositReceived(address indexed _from, uint _amount, uint _timestamp);
+    event EthWithdrawal(address indexed _to, uint _amount, uint _timestamp);
+
+    // Order events
+    event LimitSellOrderCreated(uint indexed _symbolIndex, address indexed _who, uint _amountTokens, uint _priceInWei, uint _orderKey);
+    event SellOrderFulfilled(uint indexed _symbolIndex, uint _amount, uint _priceInWei, uint _orderKey);
+    event SellOrderCanceled(uint indexed _symbolIndex, uint _priceInWei, uint _orderKey);
+    event LimitBuyOrderCreated(uint indexed _symbolIndex, address indexed _who, uint _amountTokens, uint _priceInWei, uint _orderKey);
+    event BuyOrderFulfilled(uint indexed _symbolIndex, uint _amount, uint _priceInWei, uint _orderKey);
+    event BuyOrderCanceled(uint indexed _symbolIndex, uint _priceInWei, uint _orderKey);
+
+    //Management events
+    event TokenAddedToSystem(uint _symbolIndex, string _token, uint _timestamp);
+
+    // function ERC20Exchange() public {
+    //     owner = msg.sender;
+    // }
 
     // ETHER DEPOSIT/WITHDRAWAL FUNCTIONS
     function depositEther() public payable {
         require(ethBalanceForAddress[msg.sender] + msg.value >= ethBalanceForAddress[msg.sender]);
         ethBalanceForAddress[msg.sender] += msg.value;
+        EthDepositReceived(msg.sender, msg.value, now);
     } 
     
     function withdrawEther(uint amountInWei) public {
@@ -55,6 +73,7 @@ contract ERC20Exchange is Owned {
         require(ethBalanceForAddress[msg.sender] - amountInWei <= ethBalanceForAddress[msg.sender]);
         ethBalanceForAddress[msg.sender] -= amountInWei;
         msg.sender.transfer(amountInWei);
+        EthWithdrawal(msg.sender, amountInWei, now);
     }
 
     function getEtherBalanceInWei() public constant returns(uint) {
@@ -69,6 +88,7 @@ contract ERC20Exchange is Owned {
         require(token.transferFrom(msg.sender, address(this), _amount) == true);
         require(tokenBalanceForAddress[msg.sender][tokenIndex] + _amount >= tokenBalanceForAddress[msg.sender][tokenIndex]); 
         tokenBalanceForAddress[msg.sender][tokenIndex] += _amount;
+        TokenDepositReceived(msg.sender, tokenIndex, _amount, now);
     }
 
     function withdrawToken(string _symbolName, uint _amount) public {
@@ -79,6 +99,7 @@ contract ERC20Exchange is Owned {
         require(tokenBalanceForAddress[msg.sender][tokenIndex] - _amount <= tokenBalanceForAddress[msg.sender][tokenIndex]);
         tokenBalanceForAddress[msg.sender][tokenIndex] -= _amount;
         require(token.transfer(msg.sender, _amount) == true);
+        TokenWithdrawal(msg.sender, tokenIndex, _amount, now);
     }
 
     function getTokenBalance(string _symbolName) public constant returns(uint) {
@@ -87,12 +108,13 @@ contract ERC20Exchange is Owned {
         return tokenBalanceForAddress[msg.sender][tokenIndex];
     }
 
-    function addToken(address _tokenAddress, string _symbolName) public onlyOwner {
+    function addToken(string _symbolName, address _tokenAddress) public onlyOwner {
         require(!hasToken(_symbolName));
         require(symbolNameIndex + 1 > symbolNameIndex);
         symbolNameIndex++;
         tokens[symbolNameIndex].symbolName = _symbolName;
         tokens[symbolNameIndex].tokenContract = _tokenAddress;
+        TokenAddedToSystem(symbolNameIndex, _symbolName, now);
     }
 
     function getSymbolIndex(string _symbolName) internal view returns(uint8) {

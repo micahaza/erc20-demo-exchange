@@ -13,6 +13,7 @@ contract('Exchange contract', function(accounts){
             exchangeInstance = instance;
              return exchangeInstance.depositEther({from: testAccount, value: web3.toWei(1, "ether")});
         }).then(function(tx){
+            assert.equal(tx.logs[0].event, "EthDepositReceived", "EthDepositReceived event should be emitted")
             return exchangeInstance.getEtherBalanceInWei.call({from: testAccount});
         }).then(function(balanceInWei){
             balanceAfterDeposit = balanceInWei;
@@ -39,7 +40,8 @@ contract('Exchange contract', function(accounts){
             assert.equal(balanceAfterDeposit.toNumber(), web3.toWei(1, "ether"));
             assert.isAtLeast(balanceBeforeDeposit.toNumber() - balanceAfterDeposit.toNumber(),web3.toWei(1, "ether"));
             return exchangeInstance.withdrawEther(web3.toWei(1, "ether"), {from: testAccount})
-        }).then(function(txHash){
+        }).then(function(tx){
+            assert.equal(tx.logs[0].event, "EthWithdrawal", "EthWithdrawal event should be emitted")
             balanceAfterWithdrawal = web3.eth.getBalance(testAccount);
             return exchangeInstance.getEtherBalanceInWei.call({from: testAccount});
         }).then(function(balanceInWei){
@@ -56,8 +58,9 @@ contract('Exchange contract', function(accounts){
             return exchange.deployed();
         }).then(function(instance){
             exchangeInstance = instance;
-            return exchangeInstance.addToken(tokenInstance.address, "FIXED");
-        }).then(function(){
+            return exchangeInstance.addToken("FIXED", tokenInstance.address);
+        }).then(function(tx){
+            assert.equal(tx.logs[0].event, "TokenAddedToSystem", "TokenAddedToSystem event should be emitted")
             return exchangeInstance.hasToken.call("FIXED")
         }).then(function(hasToken){
             assert.equal(true, hasToken, "Token wasn't added");
@@ -110,7 +113,8 @@ contract('Exchange contract', function(accounts){
         }).then(function(balance){
             balanceInTokenBefore = balance.toNumber();
             return exchangeInstance.withdrawToken('FIXED', balanceInExchangeBefore, {from: testAccount});
-        }).then(function(txHash){
+        }).then(function(tx){
+            assert.equal(tx.logs[0].event, "TokenWithdrawal", "TokenWithdrawal event should be emitted")
             return exchangeInstance.getTokenBalance('FIXED', {from: testAccount});
         }).then(function(balance){
             balanceInExchangeAfter = balance.toNumber();
